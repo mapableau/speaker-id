@@ -1,0 +1,17 @@
+{
+  "name": "aditunis",
+  "private": true,
+  "packageManager": "pnpm@10.15.1",
+  "scripts": {
+    "test": "vitest run --workspace vitest.workspace.ts",
+    "typecheck": "pnpm -r typecheck",
+    "build": "pnpm -r build",
+    "e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.10.2",
+    "@playwright/test": "^1.55.0",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
+  }
+}
