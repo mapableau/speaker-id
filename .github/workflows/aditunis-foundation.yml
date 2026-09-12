@@ -11,7 +11,7 @@ on:
       - "aditunis/**"
       - ".github/workflows/aditunis-foundation.yml"
 permissions:
-  contents: read
+  contents: write
 jobs:
   verify:
     runs-on: ubuntu-latest
@@ -27,6 +27,18 @@ jobs:
         with:
           node-version: 22
       - run: pnpm install --no-frozen-lockfile
+      - name: Commit bootstrap lockfile on staging
+        if: github.event_name == 'push' && github.ref_name == 'feature/aditunis-foundation-ci'
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add pnpm-lock.yaml
+          if git diff --cached --quiet; then
+            echo "Lockfile already pinned"
+          else
+            git commit -m "chore(aditunis): pin dependency lockfile"
+            git push origin "HEAD:${GITHUB_REF_NAME}"
+          fi
       - uses: actions/upload-artifact@v4
         with:
           name: aditunis-pnpm-lock
