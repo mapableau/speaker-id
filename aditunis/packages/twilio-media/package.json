@@ -1,0 +1,15 @@
+{
+  "name": "@aditunis/twilio-media",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": { "test": "vitest run", "typecheck": "tsc -p tsconfig.json --noEmit", "build": "tsc -p tsconfig.json --noEmit" },
+  "dependencies": {
+    "@aditunis/audio-codecs": "workspace:*",
+    "@aditunis/media-bridge": "workspace:*",
+    "twilio": "^5.8.0",
+    "ws": "^8.18.3"
+  },
+  "devDependencies": { "@types/node": "^22.17.2", "@types/ws": "^8.18.1", "typescript": "^5.9.2", "vitest": "^3.2.4" }
+}
