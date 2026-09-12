@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { clearDraft, confirmDraft, createDraft, editDraft } from "@aditunis/communication-core";
 import type { CommunicationDraft, CommunicationHypothesis, SpeechOutputAdapter } from "@aditunis/model-contracts";
 import { ConfidenceStatus } from "./ConfidenceStatus";
@@ -11,18 +11,26 @@ const syntheticHypothesis: CommunicationHypothesis = {
   alternatives: [{ text: "Please wait for my response", confidence: 0.29 }],
   modelId: "mock-euphonia",
   modelVersion: "0.0.1",
-  requiresConfirmation: true,
+  requiresConfirmation: true
 };
 
 interface CommunicationComposerProps {
   speechOutput?: SpeechOutputAdapter;
+  prefillText?: string;
+  prefillToken?: number;
 }
 
-export function CommunicationComposer({ speechOutput }: CommunicationComposerProps = {}) {
+export function CommunicationComposer({ speechOutput, prefillText = "", prefillToken = 0 }: CommunicationComposerProps = {}) {
   const [draft, setDraft] = useState<CommunicationDraft>(clearDraft());
   const [statusText, setStatusText] = useState("Manual typing is available.");
   const browserSpeech = useSpeechOutput();
   const speech = speechOutput ?? browserSpeech;
+
+  useEffect(() => {
+    if (!prefillText.trim()) return;
+    setDraft(editDraft(clearDraft(), prefillText));
+    setStatusText("Message built from the communication board. Review and confirm before speaking.");
+  }, [prefillText, prefillToken]);
 
   function onLoadSynthetic() {
     setDraft(createDraft(syntheticHypothesis));
@@ -60,7 +68,7 @@ export function CommunicationComposer({ speechOutput }: CommunicationComposerPro
 
   return (
     <section className="composer" aria-labelledby="composer-title">
-      <h1 id="composer-title">Aditunis communication demo</h1>
+      <h1 id="composer-title">Aditunis composer</h1>
       <p className="intro">You control what Aditunis says. Recognition suggestions are never spoken until you confirm them.</p>
       <div className="status" role="status" aria-live="polite" aria-atomic="true">{statusText}</div>
       <ConfidenceStatus confidence={draft.source?.confidence ?? null} />

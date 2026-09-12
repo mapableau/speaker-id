@@ -14,13 +14,12 @@ test("foundation has no detectable WCAG A/AA violations and supports keyboard fo
   const results = await new AxeBuilder({ page }).withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]).analyze();
   expect(results.violations).toEqual([]);
 
-  // Native disabled buttons must be skipped by sequential keyboard navigation.
-  for (const name of ["Message to speak", "Load synthetic speech", "Clear"]) {
+  // App-level view controls are first, then the composer. Disabled Confirm/Speak are skipped.
+  for (const name of ["Composer", "Board", "Message to speak", "Load synthetic speech", "Clear"]) {
     await page.keyboard.press("Tab");
     await expectVisibleFocus(page, name);
   }
 
-  // Once text exists, Confirm becomes keyboard-reachable.
   const message = page.getByLabel("Message to speak");
   await message.fill("hello");
   await message.focus();
@@ -29,7 +28,6 @@ test("foundation has no detectable WCAG A/AA violations and supports keyboard fo
   await page.keyboard.press("Tab");
   await expectVisibleFocus(page, "Confirm");
 
-  // Keyboard confirmation enables Speak; the next Tab reaches it.
   await page.keyboard.press("Enter");
   await page.keyboard.press("Tab");
   await expectVisibleFocus(page, "Speak");
