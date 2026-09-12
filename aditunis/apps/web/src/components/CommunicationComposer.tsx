@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { clearDraft, confirmDraft, createDraft, editDraft } from "@aditunis/communication-core";
-import type { CommunicationDraft, CommunicationHypothesis } from "@aditunis/model-contracts";
+import type { CommunicationDraft, CommunicationHypothesis, SpeechOutputAdapter } from "@aditunis/model-contracts";
 import { ConfidenceStatus } from "./ConfidenceStatus";
 import { useSpeechOutput } from "../hooks/useSpeechOutput";
 
@@ -14,10 +14,15 @@ const syntheticHypothesis: CommunicationHypothesis = {
   requiresConfirmation: true,
 };
 
-export function CommunicationComposer() {
+interface CommunicationComposerProps {
+  speechOutput?: SpeechOutputAdapter;
+}
+
+export function CommunicationComposer({ speechOutput }: CommunicationComposerProps = {}) {
   const [draft, setDraft] = useState<CommunicationDraft>(clearDraft());
   const [statusText, setStatusText] = useState("Manual typing is available.");
-  const speech = useSpeechOutput();
+  const browserSpeech = useSpeechOutput();
+  const speech = speechOutput ?? browserSpeech;
 
   function onLoadSynthetic() {
     setDraft(createDraft(syntheticHypothesis));

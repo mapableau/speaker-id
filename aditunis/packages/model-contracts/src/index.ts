@@ -32,7 +32,11 @@ export interface PersonalVadAdapter {
 }
 export interface SignSequence { frames: unknown[]; durationMs: number; }
 export interface SignAdapter { infer(sequence: SignSequence): Promise<CommunicationHypothesis>; }
-export interface SpeechOutputAdapter { speak(text: string): Promise<void>; stop(): Promise<void>; }
+export interface SpeechOutputAdapter {
+  speak(text: string): Promise<void>;
+  stop(): Promise<void>;
+  renderAudio?(text: string): Promise<AudioBuffer>;
+}
 
 const modalities = new Set<CommunicationModality>(["personal-speech", "sign", "aac", "typed-text"]);
 function assertConfidence(value: unknown, field: string): asserts value is number {

@@ -22,6 +22,15 @@ function text(value: unknown, label: string): string {
   return value;
 }
 
+function decodeBase64(payload: string): Uint8Array {
+  if (payload.length % 4 !== 0 || !/^[A-Za-z0-9+/]*={0,2}$/.test(payload)) {
+    throw new TwilioMediaProtocolError("media.payload must be valid base64");
+  }
+  const bytes = Buffer.from(payload, "base64");
+  if (bytes.toString("base64") !== payload) throw new TwilioMediaProtocolError("media.payload must be canonical base64");
+  return Uint8Array.from(bytes);
+}
+
 export function parseTwilioMediaEvent(input: unknown): TwilioMediaEvent {
   const root = object(input, "event");
   const event = text(root.event, "event.event");
@@ -35,12 +44,7 @@ export function parseTwilioMediaEvent(input: unknown): TwilioMediaEvent {
     }
     case "media": {
       const media = object(root.media, "media");
-      const payload = text(media.payload, "media.payload");
-      try {
-        return { type: "media", streamSid, payload: Uint8Array.from(Buffer.from(payload, "base64")) };
-      } catch {
-        throw new TwilioMediaProtocolError("media.payload must be valid base64");
-      }
+      return { type: "media", streamSid, payload: decodeBase64(text(media.payload, "media.payload")) };
     }
     case "mark": {
       const mark = object(root.mark, "mark");

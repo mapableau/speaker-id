@@ -12,7 +12,8 @@ export class OptionalPersonalVadGate {
     this.adapter = adapter;
   }
 
-  async shouldProcess(frame: AudioFrame, profile: SpeakerProfile): Promise<VadGateDecision> {
+  async shouldProcess(frame: AudioFrame, profile: SpeakerProfile, enabled = true): Promise<VadGateDecision> {
+    if (!enabled) return { process: true, degraded: false };
     try {
       const result = await this.adapter.classify(frame, profile);
       return { process: result.targetSpeechProbability >= 0.5, degraded: false };

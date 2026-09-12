@@ -27,6 +27,11 @@ jobs:
         with:
           node-version: 22
       - run: pnpm install --no-frozen-lockfile
+      - uses: actions/upload-artifact@v4
+        with:
+          name: aditunis-pnpm-lock
+          path: aditunis/pnpm-lock.yaml
+          if-no-files-found: error
       - run: pnpm typecheck
       - run: pnpm test
       - run: pnpm build
