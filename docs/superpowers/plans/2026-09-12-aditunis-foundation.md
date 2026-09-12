@@ -4,103 +4,74 @@
 
 **Goal:** Build a verified accessibility-first Aditunis foundation that converts a communication hypothesis into a participant-controlled editable draft, explicit confirmation, local TTS, and a Twilio-compatible audio/WebSocket test path while defining tested adapter boundaries for personalised Euphonia ASR, Personal VAD, sign input, and durable Temporal model lifecycle workflows.
 
-**Architecture:** Incubate all new product code under `aditunis/` without reorganising the inherited Google research tree. Use a TypeScript pnpm workspace for the first slice: React/Vite for the accessible demo, pure TypeScript packages for communication state and G.711 mu-law media handling, mock-but-typed Personal Speech and Personal VAD adapters, a Twilio media test harness, and Temporal TypeScript workflows tested with the local test environment. Do not add real participant data, production PSTN calling, emergency calling, or GPU/Python inference in this slice.
+**Architecture:** Incubate all new product code under `aditunis/` without reorganising the inherited Google research tree. Use a TypeScript pnpm workspace for the first slice: React/Vite for the accessible demo, pure TypeScript packages for communication state and G.711 mu-law media handling, mock-but-typed Personal Speech and Personal VAD adapters, a local Twilio-compatible media harness, and Temporal TypeScript workflows tested with the local test environment. Do not add real participant data, production PSTN calling, emergency calling, or GPU/Python inference in this slice.
 
-**Tech Stack:** TypeScript 5+, pnpm workspaces, React 19, Vite, Vitest, Testing Library, Playwright + `@axe-core/playwright`, `ws`, official `twilio` Node SDK, Web Speech API, Temporal TypeScript SDK/test environment.
+**Tech Stack:** Node 22, TypeScript 5+, pnpm 10, React 19, Vite, Vitest, Testing Library, Playwright + `@axe-core/playwright`, `ws`, official `twilio` Node SDK, browser Web Speech API, Temporal TypeScript SDK/test environment.
 
 **Spec:** `docs/superpowers/specs/2026-09-12-aditunis-foundation-design.md`
 
 ## Global Constraints
 
-- New product code lives under `aditunis/`; existing Google-derived research code remains untouched unless a later task explicitly wraps it.
+- New product code lives under `aditunis/`; inherited Google-derived research code remains untouched.
 - Every model-generated hypothesis requires explicit user confirmation in this foundation release.
-- Personal VAD is an optional accessibility/noise-control feature, never authentication; failure must bypass gating rather than block communication.
+- Personal VAD is an optional accessibility/noise-control feature, never authentication; failure bypasses gating instead of blocking communication.
 - No raw participant speech, camera video, speaker embeddings, credentials, or disability data may be committed.
-- No live Twilio/PSTN call is placed in this plan; Twilio work is limited to signed webhook validation, protocol parsing, codecs, and local WebSocket integration tests.
-- Temporal is used only for durable model lifecycle orchestration; no frame-by-frame audio processing occurs inside workflows.
+- No live Twilio/PSTN call is placed; Twilio work is limited to request validation, protocol parsing, codecs, and localhost WebSocket tests.
+- Temporal is used only for durable model lifecycle orchestration; no frame-by-frame audio work occurs inside workflows.
 - WCAG 2.2 AA is the minimum UI target, with keyboard operation, visible focus, live status announcements, 200% zoom/reflow, large targets, reduced motion, and manual typing fallback.
-- Low-confidence or failed inference must be represented as uncertainty; the system must not invent fluent messages.
+- Low-confidence or failed inference is represented as uncertainty; the system must not invent fluent messages.
 - Use synthetic fixtures only.
-- Use TDD for every implementation task: write the failing test, run it, implement the smallest passing change, rerun, refactor, rerun, commit.
+- Use TDD for every implementation task.
 
----
+## Workspace conventions
 
-## Planned File Structure
+Every workspace package uses ESM, `strict: true`, and exposes source through `src/index.ts` or the named source file. Packages that do not need a production bundle still have a `build` script equal to `tsc -p tsconfig.json --noEmit` so root verification is consistent.
 
-```text
-aditunis/
-  package.json
-  pnpm-workspace.yaml
-  tsconfig.base.json
-  vitest.workspace.ts
-  apps/
-    web/
-      index.html
-      package.json
-      vite.config.ts
-      src/
-        App.tsx
-        main.tsx
-        styles.css
-        components/
-          CommunicationComposer.tsx
-          ConfidenceStatus.tsx
-          PermissionNotice.tsx
-        hooks/
-          useSpeechOutput.ts
-      tests/
-        CommunicationComposer.test.tsx
-        App.accessibility.test.tsx
-  packages/
-    model-contracts/
-      src/index.ts
-      tests/contracts.test.ts
-    communication-core/
-      src/draft-machine.ts
-      src/confidence-policy.ts
-      tests/draft-machine.test.ts
-      tests/confidence-policy.test.ts
-    audio-codecs/
-      src/mulaw.ts
-      src/pcm.ts
-      tests/mulaw.test.ts
-    media-bridge/
-      src/types.ts
-      src/session.ts
-      tests/session.test.ts
-    speech-output/
-      src/browser-speech.ts
-      src/types.ts
-      tests/browser-speech.test.ts
-    adapters/
-      src/personal-speech.ts
-      src/personal-vad.ts
-      src/sign.ts
-      src/mocks.ts
-      tests/adapters.test.ts
-    twilio-media/
-      src/signature.ts
-      src/messages.ts
-      src/local-harness.ts
-      tests/signature.test.ts
-      tests/messages.test.ts
-      tests/local-harness.test.ts
-  services/
-    temporal-worker/
-      package.json
-      src/workflows.ts
-      src/activities.ts
-      src/types.ts
-      tests/enrollment-workflow.test.ts
-      tests/consent-withdrawal.test.ts
-  e2e/
-    accessibility.spec.ts
-    communication-flow.spec.ts
-  docs/
-    architecture/data-flow.md
-    privacy/foundation-privacy.md
-    model-cards/foundation-adapters.md
-  playwright.config.ts
+Root `aditunis/package.json`:
+
+```json
+{
+  "name": "aditunis",
+  "private": true,
+  "packageManager": "pnpm@10.15.1",
+  "scripts": {
+    "test": "vitest run --workspace vitest.workspace.ts",
+    "typecheck": "pnpm -r typecheck",
+    "build": "pnpm -r build",
+    "e2e": "playwright test"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.10.2",
+    "@playwright/test": "^1.55.0",
+    "typescript": "^5.9.2",
+    "vitest": "^3.2.4"
+  }
+}
+```
+
+Root `aditunis/pnpm-workspace.yaml`:
+
+```yaml
+packages:
+  - apps/*
+  - packages/*
+  - services/*
+```
+
+Root `aditunis/tsconfig.base.json`:
+
+```json
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "ESNext",
+    "moduleResolution": "Bundler",
+    "strict": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true
+  }
+}
 ```
 
 ---
@@ -113,71 +84,70 @@ aditunis/
 - Create: `aditunis/tsconfig.base.json`
 - Create: `aditunis/vitest.workspace.ts`
 - Create: `aditunis/packages/model-contracts/package.json`
+- Create: `aditunis/packages/model-contracts/tsconfig.json`
 - Create: `aditunis/packages/model-contracts/src/index.ts`
 - Test: `aditunis/packages/model-contracts/tests/contracts.test.ts`
 
-**Interfaces:**
-- Produces: `CommunicationModality`, `CommunicationAlternative`, `CommunicationHypothesis`, `CommunicationDraft`, `SpeechProfile`, `SpeakerProfile`, `AudioFrame`, `AudioChunkStream`, `PersonalVadResult`, `PersonalSpeechAdapter`, `PersonalVadAdapter`, `SignAdapter`, `SpeechOutputAdapter`.
-- Consumes: none.
+**Interfaces:** Produces `CommunicationModality`, `CommunicationAlternative`, `CommunicationHypothesis`, `CommunicationDraft`, `SpeechProfile`, `SpeakerProfile`, `AudioFrame`, `AudioChunkStream`, `PersonalVadResult`, `PersonalSpeechAdapter`, `PersonalVadAdapter`, `SignAdapter`, `SpeechOutputAdapter`.
 
-- [ ] **Step 1: Add the root workspace manifest and scripts**
+- [ ] **Step 1: Create the root workspace files exactly as specified above, plus Vitest workspace configuration**
+
+```ts
+// vitest.workspace.ts
+import { defineWorkspace } from "vitest/config";
+export default defineWorkspace(["apps/*/vitest.config.ts", "packages/*/vitest.config.ts", "services/*/vitest.config.ts"]);
+```
+
+- [ ] **Step 2: Create `@aditunis/model-contracts` manifest and tsconfig**
 
 ```json
 {
-  "name": "aditunis",
+  "name": "@aditunis/model-contracts",
+  "version": "0.0.0",
   "private": true,
-  "packageManager": "pnpm@10.15.1",
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
   "scripts": {
-    "test": "vitest run --workspace vitest.workspace.ts",
-    "test:watch": "vitest --workspace vitest.workspace.ts",
-    "typecheck": "pnpm -r typecheck",
-    "build": "pnpm -r build",
-    "e2e": "playwright test"
+    "test": "vitest run",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "build": "tsc -p tsconfig.json --noEmit"
   },
-  "devDependencies": {
-    "@playwright/test": "^1.55.0",
-    "typescript": "^5.9.2",
-    "vitest": "^3.2.4"
-  }
+  "devDependencies": { "typescript": "^5.9.2", "vitest": "^3.2.4" }
 }
 ```
 
-Create `pnpm-workspace.yaml`:
-
-```yaml
-packages:
-  - apps/*
-  - packages/*
-  - services/*
+```json
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": { "types": ["vitest/globals"] },
+  "include": ["src", "tests"]
+}
 ```
 
-- [ ] **Step 2: Write the failing contract tests**
+Also create package-local `vitest.config.ts` with `defineConfig({ test: { environment: "node" } })`.
+
+- [ ] **Step 3: Write the failing contract test**
 
 ```ts
-import { describe, expect, it } from "vitest";
+import { expect, it } from "vitest";
 import type { CommunicationHypothesis } from "../src/index";
 
-describe("CommunicationHypothesis", () => {
-  it("supports explicit model provenance and confirmation", () => {
-    const hypothesis: CommunicationHypothesis = {
-      modality: "personal-speech",
-      text: "hello",
-      confidence: 0.82,
-      alternatives: [{ text: "yellow", confidence: 0.11 }],
-      modelId: "mock-euphonia",
-      modelVersion: "0.0.1",
-      requiresConfirmation: true,
-    };
-
-    expect(hypothesis.requiresConfirmation).toBe(true);
-    expect(hypothesis.modelId).toBe("mock-euphonia");
-  });
+it("carries model provenance and mandatory confirmation", () => {
+  const value: CommunicationHypothesis = {
+    modality: "personal-speech",
+    text: "hello",
+    confidence: 0.82,
+    alternatives: [{ text: "yellow", confidence: 0.11 }],
+    modelId: "mock-euphonia",
+    modelVersion: "0.0.1",
+    requiresConfirmation: true
+  };
+  expect(value.requiresConfirmation).toBe(true);
+  expect(value.modelId).toBe("mock-euphonia");
 });
 ```
 
-- [ ] **Step 3: Run the model-contract test and confirm it fails because the module does not exist**
-
-Run:
+- [ ] **Step 4: Run and confirm FAIL**
 
 ```bash
 cd aditunis
@@ -185,18 +155,13 @@ pnpm install
 pnpm --filter @aditunis/model-contracts test
 ```
 
-Expected: FAIL due to missing `src/index.ts` exports.
+Expected: module/export missing.
 
-- [ ] **Step 4: Implement the contracts with strict confidence bounds documented at the type boundary**
+- [ ] **Step 5: Implement the contracts**
 
 ```ts
 export type CommunicationModality = "personal-speech" | "sign" | "aac" | "typed-text";
-
-export interface CommunicationAlternative {
-  text: string;
-  confidence: number;
-}
-
+export interface CommunicationAlternative { text: string; confidence: number; }
 export interface CommunicationHypothesis {
   modality: CommunicationModality;
   text: string;
@@ -206,75 +171,38 @@ export interface CommunicationHypothesis {
   modelVersion: string;
   requiresConfirmation: boolean;
 }
-
 export interface CommunicationDraft {
   text: string;
   source: CommunicationHypothesis | null;
   confirmed: boolean;
   lastEditedAt: string | null;
 }
-
-export interface AudioFrame {
-  pcm16: Int16Array;
-  sampleRateHz: number;
-  timestampMs: number;
-}
-
+export interface AudioFrame { pcm16: Int16Array; sampleRateHz: number; timestampMs: number; }
 export type AudioChunkStream = AsyncIterable<AudioFrame>;
-
-export interface SpeechProfile {
-  profileId: string;
-  modelId: string;
-  modelVersion: string;
-}
-
-export interface SpeakerProfile {
-  profileId: string;
-  embeddingRef: string;
-}
-
+export interface SpeechProfile { profileId: string; modelId: string; modelVersion: string; }
+export interface SpeakerProfile { profileId: string; embeddingRef: string; }
 export interface PersonalVadResult {
   targetSpeechProbability: number;
   otherSpeechProbability: number;
   nonSpeechProbability: number;
 }
-
 export interface PersonalSpeechAdapter {
   transcribe(input: AudioChunkStream, profile: SpeechProfile): Promise<CommunicationHypothesis>;
 }
-
 export interface PersonalVadAdapter {
   classify(frame: AudioFrame, profile: SpeakerProfile): Promise<PersonalVadResult>;
 }
-
-export interface SignSequence {
-  frames: unknown[];
-  durationMs: number;
-}
-
-export interface SignAdapter {
-  infer(sequence: SignSequence): Promise<CommunicationHypothesis>;
-}
-
-export interface SpeechOutputAdapter {
-  speak(text: string): Promise<void>;
-  stop(): Promise<void>;
-}
+export interface SignSequence { frames: unknown[]; durationMs: number; }
+export interface SignAdapter { infer(sequence: SignSequence): Promise<CommunicationHypothesis>; }
+export interface SpeechOutputAdapter { speak(text: string): Promise<void>; stop(): Promise<void>; }
 ```
 
-- [ ] **Step 5: Run tests and typecheck**
+- [ ] **Step 6: Verify and commit**
 
 ```bash
 pnpm --filter @aditunis/model-contracts test
 pnpm --filter @aditunis/model-contracts typecheck
-```
-
-Expected: PASS.
-
-- [ ] **Step 6: Commit**
-
-```bash
-git add aditunis/package.json aditunis/pnpm-workspace.yaml aditunis/tsconfig.base.json aditunis/vitest.workspace.ts aditunis/packages/model-contracts
+git add aditunis
 git commit -m "feat(aditunis): add workspace and communication contracts"
 ```
 
@@ -282,116 +210,71 @@ git commit -m "feat(aditunis): add workspace and communication contracts"
 
 ### Task 2: Participant-controlled draft state and confidence policy
 
-**Files:**
-- Create: `aditunis/packages/communication-core/package.json`
-- Create: `aditunis/packages/communication-core/src/draft-machine.ts`
-- Create: `aditunis/packages/communication-core/src/confidence-policy.ts`
-- Test: `aditunis/packages/communication-core/tests/draft-machine.test.ts`
-- Test: `aditunis/packages/communication-core/tests/confidence-policy.test.ts`
+**Files:** `aditunis/packages/communication-core/{package.json,tsconfig.json,vitest.config.ts,src/draft-machine.ts,src/confidence-policy.ts,src/index.ts,tests/*.test.ts}`
 
-**Interfaces:**
-- Consumes: `CommunicationHypothesis`, `CommunicationDraft` from `@aditunis/model-contracts`.
-- Produces: `createDraft`, `editDraft`, `confirmDraft`, `clearDraft`, `classifyConfidence`.
+**Manifest:**
 
-- [ ] **Step 1: Write failing draft-state tests**
-
-```ts
-import { describe, expect, it } from "vitest";
-import { confirmDraft, createDraft, editDraft } from "../src/draft-machine";
-
-const hypothesis = {
-  modality: "personal-speech" as const,
-  text: "call taxi",
-  confidence: 0.74,
-  alternatives: [],
-  modelId: "mock-euphonia",
-  modelVersion: "0.0.1",
-  requiresConfirmation: true,
-};
-
-describe("participant-controlled draft", () => {
-  it("never treats a model hypothesis as confirmed", () => {
-    expect(createDraft(hypothesis).confirmed).toBe(false);
-  });
-
-  it("invalidates confirmation after an edit", () => {
-    const confirmed = confirmDraft(createDraft(hypothesis));
-    expect(editDraft(confirmed, "please call a taxi").confirmed).toBe(false);
-  });
-});
+```json
+{
+  "name": "@aditunis/communication-core",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": { "test": "vitest run", "typecheck": "tsc -p tsconfig.json --noEmit", "build": "tsc -p tsconfig.json --noEmit" },
+  "dependencies": { "@aditunis/model-contracts": "workspace:*" },
+  "devDependencies": { "typescript": "^5.9.2", "vitest": "^3.2.4" }
+}
 ```
 
-- [ ] **Step 2: Run and verify FAIL**
+- [ ] **Step 1: Write failing tests proving hypotheses start unconfirmed, edits invalidate confirmation, empty drafts cannot be confirmed, and confidence bands validate the 0..1 range**
+
+```ts
+const source = { modality: "personal-speech" as const, text: "call taxi", confidence: 0.74, alternatives: [], modelId: "mock", modelVersion: "1", requiresConfirmation: true };
+expect(createDraft(source).confirmed).toBe(false);
+expect(editDraft(confirmDraft(createDraft(source)), "please call a taxi").confirmed).toBe(false);
+expect(() => confirmDraft(clearDraft())).toThrow(/empty/i);
+expect(classifyConfidence(0.49)).toBe("low");
+expect(classifyConfidence(0.79)).toBe("medium");
+expect(classifyConfidence(0.95)).toBe("high");
+expect(() => classifyConfidence(1.1)).toThrow(RangeError);
+```
+
+- [ ] **Step 2: Run tests and confirm FAIL**
 
 ```bash
 pnpm --filter @aditunis/communication-core test
 ```
 
-Expected: FAIL because `draft-machine` does not exist.
-
-- [ ] **Step 3: Implement immutable draft transitions**
+- [ ] **Step 3: Implement immutable draft transitions and confidence policy**
 
 ```ts
-import type { CommunicationDraft, CommunicationHypothesis } from "@aditunis/model-contracts";
-
 export function createDraft(source: CommunicationHypothesis): CommunicationDraft {
   return { text: source.text, source, confirmed: false, lastEditedAt: null };
 }
-
 export function editDraft(draft: CommunicationDraft, text: string): CommunicationDraft {
   return { ...draft, text, confirmed: false, lastEditedAt: new Date().toISOString() };
 }
-
 export function confirmDraft(draft: CommunicationDraft): CommunicationDraft {
   if (!draft.text.trim()) throw new Error("Cannot confirm an empty message");
   return { ...draft, confirmed: true };
 }
-
 export function clearDraft(): CommunicationDraft {
   return { text: "", source: null, confirmed: false, lastEditedAt: null };
 }
-```
-
-- [ ] **Step 4: Add confidence-policy tests**
-
-```ts
-import { expect, it } from "vitest";
-import { classifyConfidence } from "../src/confidence-policy";
-
-it("exposes uncertainty rather than converting it into a message", () => {
-  expect(classifyConfidence(0.49)).toBe("low");
-  expect(classifyConfidence(0.79)).toBe("medium");
-  expect(classifyConfidence(0.95)).toBe("high");
-});
-```
-
-- [ ] **Step 5: Implement and verify confidence policy**
-
-```ts
-export type ConfidenceBand = "low" | "medium" | "high";
-
-export function classifyConfidence(confidence: number): ConfidenceBand {
-  if (!Number.isFinite(confidence) || confidence < 0 || confidence > 1) {
-    throw new RangeError("confidence must be between 0 and 1");
-  }
-  if (confidence < 0.65) return "low";
-  if (confidence < 0.9) return "medium";
+export function classifyConfidence(value: number): "low" | "medium" | "high" {
+  if (!Number.isFinite(value) || value < 0 || value > 1) throw new RangeError("confidence must be between 0 and 1");
+  if (value < 0.65) return "low";
+  if (value < 0.9) return "medium";
   return "high";
 }
 ```
 
-Run:
+- [ ] **Step 4: Verify and commit**
 
 ```bash
 pnpm --filter @aditunis/communication-core test
 pnpm --filter @aditunis/communication-core typecheck
-```
-
-Expected: PASS.
-
-- [ ] **Step 6: Commit**
-
-```bash
 git add aditunis/packages/communication-core
 git commit -m "feat(aditunis): add participant controlled draft state"
 ```
@@ -400,58 +283,38 @@ git commit -m "feat(aditunis): add participant controlled draft state"
 
 ### Task 3: Adapter boundaries, provenance, and graceful Personal VAD fallback
 
-**Files:**
-- Create: `aditunis/packages/adapters/package.json`
-- Create: `aditunis/packages/adapters/src/personal-speech.ts`
-- Create: `aditunis/packages/adapters/src/personal-vad.ts`
-- Create: `aditunis/packages/adapters/src/sign.ts`
-- Create: `aditunis/packages/adapters/src/mocks.ts`
-- Test: `aditunis/packages/adapters/tests/adapters.test.ts`
+**Files:** `aditunis/packages/adapters/{package.json,tsconfig.json,vitest.config.ts,src/index.ts,src/personal-speech.ts,src/personal-vad.ts,src/sign.ts,src/mocks.ts,tests/adapters.test.ts}`
 
-**Interfaces:**
-- Consumes: model contracts.
-- Produces: `ProvenanceCheckedSpeechAdapter`, `OptionalPersonalVadGate`, `MockPersonalSpeechAdapter`, `MockPersonalVadAdapter`, `MockSignAdapter`.
+**Manifest:** same scripts as Task 2; dependencies only `@aditunis/model-contracts: workspace:*`.
 
-- [ ] **Step 1: Write failing adapter tests**
+- [ ] **Step 1: Write failing tests**
 
 ```ts
-import { describe, expect, it } from "vitest";
-import { OptionalPersonalVadGate, MockPersonalVadAdapter } from "../src/index";
-
-it("bypasses Personal VAD when it fails", async () => {
-  const failing = new MockPersonalVadAdapter({ mode: "throw" });
-  const gate = new OptionalPersonalVadGate(failing);
-  const decision = await gate.shouldProcess(
-    { pcm16: new Int16Array([1, 2]), sampleRateHz: 16000, timestampMs: 0 },
-    { profileId: "p1", embeddingRef: "memory://speaker/p1" },
-  );
-  expect(decision).toEqual({ process: true, degraded: true });
+it("bypasses failed Personal VAD", async () => {
+  const gate = new OptionalPersonalVadGate(new MockPersonalVadAdapter({ mode: "throw" }));
+  await expect(gate.shouldProcess(frame, profile)).resolves.toEqual({ process: true, degraded: true });
+});
+it("forces confirmation and rejects missing provenance", async () => {
+  const checked = new ProvenanceCheckedSpeechAdapter(new MockPersonalSpeechAdapter({ modelId: "", modelVersion: "1" }));
+  await expect(checked.transcribe(stream, speechProfile)).rejects.toThrow(/provenance/i);
 });
 ```
 
-Add a speech provenance test that rejects a hypothesis whose `modelId` or `modelVersion` is empty.
-
-- [ ] **Step 2: Run and verify FAIL**
+- [ ] **Step 2: Run and confirm FAIL**
 
 ```bash
 pnpm --filter @aditunis/adapters test
 ```
 
-- [ ] **Step 3: Implement the optional gate**
+- [ ] **Step 3: Implement `OptionalPersonalVadGate`**
 
 ```ts
-import type { AudioFrame, PersonalVadAdapter, SpeakerProfile } from "@aditunis/model-contracts";
-
 export class OptionalPersonalVadGate {
   constructor(private readonly adapter: PersonalVadAdapter) {}
-
   async shouldProcess(frame: AudioFrame, profile: SpeakerProfile) {
     try {
       const result = await this.adapter.classify(frame, profile);
-      return {
-        process: result.targetSpeechProbability >= 0.5,
-        degraded: false,
-      };
+      return { process: result.targetSpeechProbability >= 0.5, degraded: false };
     } catch {
       return { process: true, degraded: true };
     }
@@ -459,33 +322,28 @@ export class OptionalPersonalVadGate {
 }
 ```
 
-Implement mock adapters that use only synthetic text/audio and always identify themselves with explicit model/version strings.
-
-- [ ] **Step 4: Implement provenance enforcement**
+- [ ] **Step 4: Implement `ProvenanceCheckedSpeechAdapter` and synthetic mocks**
 
 ```ts
-import type { AudioChunkStream, CommunicationHypothesis, PersonalSpeechAdapter, SpeechProfile } from "@aditunis/model-contracts";
-
 export class ProvenanceCheckedSpeechAdapter implements PersonalSpeechAdapter {
   constructor(private readonly inner: PersonalSpeechAdapter) {}
-
-  async transcribe(input: AudioChunkStream, profile: SpeechProfile): Promise<CommunicationHypothesis> {
+  async transcribe(input: AudioChunkStream, profile: SpeechProfile) {
     const result = await this.inner.transcribe(input, profile);
-    if (!result.modelId.trim() || !result.modelVersion.trim()) {
-      throw new Error("Speech hypothesis is missing model provenance");
-    }
+    if (!result.modelId.trim() || !result.modelVersion.trim()) throw new Error("Speech hypothesis is missing model provenance");
     return { ...result, requiresConfirmation: true };
   }
 }
 ```
 
-- [ ] **Step 5: Run tests/typecheck and commit**
+Mock adapters must return only synthetic data and explicit `modelId`/`modelVersion` values.
+
+- [ ] **Step 5: Verify and commit**
 
 ```bash
 pnpm --filter @aditunis/adapters test
 pnpm --filter @aditunis/adapters typecheck
 git add aditunis/packages/adapters
-git commit -m "feat(aditunis): add speech vad and sign adapter boundaries"
+git commit -m "feat(aditunis): add model adapter boundaries"
 ```
 
 ---
@@ -493,161 +351,146 @@ git commit -m "feat(aditunis): add speech vad and sign adapter boundaries"
 ### Task 4: G.711 mu-law codec and media-session state machine
 
 **Files:**
-- Create: `aditunis/packages/audio-codecs/package.json`
-- Create: `aditunis/packages/audio-codecs/src/mulaw.ts`
-- Create: `aditunis/packages/audio-codecs/src/pcm.ts`
-- Test: `aditunis/packages/audio-codecs/tests/mulaw.test.ts`
-- Create: `aditunis/packages/media-bridge/package.json`
-- Create: `aditunis/packages/media-bridge/src/types.ts`
-- Create: `aditunis/packages/media-bridge/src/session.ts`
-- Test: `aditunis/packages/media-bridge/tests/session.test.ts`
+- `aditunis/packages/audio-codecs/{package.json,tsconfig.json,vitest.config.ts,src/index.ts,src/mulaw.ts,tests/mulaw.test.ts}`
+- `aditunis/packages/media-bridge/{package.json,tsconfig.json,vitest.config.ts,src/index.ts,src/session.ts,tests/session.test.ts}`
 
-**Interfaces:**
-- Produces: `encodeMuLaw`, `decodeMuLaw`, `MediaSession`, `MediaSessionEvent`.
-- Consumes: synthetic PCM only.
+**Manifests:** both use standard test/typecheck/build scripts; `media-bridge` depends on `@aditunis/audio-codecs: workspace:*` only if it imports codec types/functions.
 
-- [ ] **Step 1: Write failing codec-vector tests**
-
-Use G.711 mu-law round-trip assertions that tolerate companding loss rather than expecting exact PCM equality:
+- [ ] **Step 1: Write failing lossy round-trip codec test**
 
 ```ts
-import { expect, it } from "vitest";
-import { decodeMuLaw, encodeMuLaw } from "../src/mulaw";
-
-it("round-trips speech-range PCM within mu-law quantisation tolerance", () => {
-  const pcm = new Int16Array([-12000, -4000, -1000, 0, 1000, 4000, 12000]);
-  const encoded = encodeMuLaw(pcm);
-  const decoded = decodeMuLaw(encoded);
-  expect(decoded).toHaveLength(pcm.length);
-  decoded.forEach((sample, i) => expect(Math.abs(sample - pcm[i])).toBeLessThan(1200));
-});
+const pcm = new Int16Array([-12000, -4000, -1000, 0, 1000, 4000, 12000]);
+const decoded = decodeMuLaw(encodeMuLaw(pcm));
+expect(decoded).toHaveLength(pcm.length);
+decoded.forEach((sample, i) => expect(Math.abs(sample - pcm[i])).toBeLessThan(1200));
 ```
 
-- [ ] **Step 2: Run and verify FAIL**
+- [ ] **Step 2: Run and confirm FAIL**
 
 ```bash
 pnpm --filter @aditunis/audio-codecs test
 ```
 
-- [ ] **Step 3: Implement the codec as a pure module**
+- [ ] **Step 3: Implement pure G.711 mu-law conversion**
 
-Implement ITU-T G.711 mu-law companding with no external native dependency. Keep the public API exactly:
+Public API is exactly:
 
 ```ts
 export function encodeMuLaw(pcm: Int16Array): Uint8Array;
 export function decodeMuLaw(encoded: Uint8Array): Int16Array;
 ```
 
-Use constants `BIAS = 0x84` and `CLIP = 32635`; encode sign/exponent/mantissa according to G.711 and complement the final byte. Decode by reversing the sign/exponent/mantissa transform. Keep this implementation isolated so it can later be replaced by a vetted codec library without changing consumers.
+Use G.711 constants `BIAS = 0x84` and `CLIP = 32635`; keep implementation isolated and side-effect free. Add zero, positive, negative, clipping, and round-trip tests.
 
-- [ ] **Step 4: Write failing media-session state tests**
+- [ ] **Step 4: Write failing media-session tests**
 
 ```ts
-import { expect, it } from "vitest";
-import { MediaSession } from "../src/session";
-
-it("rejects outbound media before a session is started", () => {
-  const session = new MediaSession();
-  expect(() => session.acceptOutbound(new Uint8Array([0xff]))).toThrow(/not started/i);
-});
+const session = new MediaSession();
+expect(() => session.acceptOutbound(new Uint8Array([0xff]))).toThrow(/not started/i);
+session.start("MZ123");
+expect(session.state).toBe("started");
+session.stop();
+expect(session.state).toBe("stopped");
 ```
 
-Also test `idle -> started -> stopped`, duplicate start rejection, and preservation of the participant draft outside transport failure state.
+Test duplicate start rejection and that transport errors do not mutate any `CommunicationDraft` object passed by the caller.
 
-- [ ] **Step 5: Implement minimal media-session state machine, run tests, commit**
+- [ ] **Step 5: Implement minimal state machine, verify, commit**
 
 ```bash
 pnpm --filter @aditunis/audio-codecs test
 pnpm --filter @aditunis/media-bridge test
 git add aditunis/packages/audio-codecs aditunis/packages/media-bridge
-git commit -m "feat(aditunis): add mulaw codec and media session core"
+git commit -m "feat(aditunis): add codec and media session core"
 ```
 
 ---
 
-### Task 5: Accessible web composer and local speech output
+### Task 5: Accessible React/Vite communication composer and browser speech output
 
-**Files:**
-- Create: `aditunis/apps/web/package.json`
-- Create: `aditunis/apps/web/index.html`
-- Create: `aditunis/apps/web/vite.config.ts`
-- Create: `aditunis/apps/web/src/main.tsx`
-- Create: `aditunis/apps/web/src/App.tsx`
-- Create: `aditunis/apps/web/src/components/CommunicationComposer.tsx`
-- Create: `aditunis/apps/web/src/components/ConfidenceStatus.tsx`
-- Create: `aditunis/apps/web/src/components/PermissionNotice.tsx`
-- Create: `aditunis/apps/web/src/hooks/useSpeechOutput.ts`
-- Create: `aditunis/apps/web/src/styles.css`
-- Test: `aditunis/apps/web/tests/CommunicationComposer.test.tsx`
-- Test: `aditunis/apps/web/tests/App.accessibility.test.tsx`
+**Files:** `aditunis/apps/web/{package.json,tsconfig.json,vite.config.ts,vitest.config.ts,index.html,src/main.tsx,src/App.tsx,src/styles.css,src/components/CommunicationComposer.tsx,src/components/ConfidenceStatus.tsx,src/hooks/useSpeechOutput.ts,tests/CommunicationComposer.test.tsx}`
 
-**Interfaces:**
-- Consumes: `CommunicationHypothesis`, communication-core draft functions, mock speech adapter.
-- Produces: participant-facing Start, Stop, Edit, Confirm, Speak, Retry, Clear and manual text controls.
+**Manifest:**
+
+```json
+{
+  "name": "@aditunis/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": { "dev": "vite", "test": "vitest run", "typecheck": "tsc -p tsconfig.json --noEmit", "build": "vite build" },
+  "dependencies": {
+    "@aditunis/adapters": "workspace:*",
+    "@aditunis/communication-core": "workspace:*",
+    "@aditunis/model-contracts": "workspace:*",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1"
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^6.8.0",
+    "@testing-library/react": "^16.3.0",
+    "@types/react": "^19.1.10",
+    "@types/react-dom": "^19.1.7",
+    "@vitejs/plugin-react": "^5.0.2",
+    "jsdom": "^26.1.0",
+    "typescript": "^5.9.2",
+    "vite": "^7.1.3",
+    "vitest": "^3.2.4"
+  }
+}
+```
 
 - [ ] **Step 1: Write failing interaction tests**
 
 ```tsx
-import { fireEvent, render, screen } from "@testing-library/react";
-import { expect, it } from "vitest";
-import { CommunicationComposer } from "../src/components/CommunicationComposer";
-
-it("requires confirmation before Speak is enabled", () => {
-  render(<CommunicationComposer />);
-  fireEvent.click(screen.getByRole("button", { name: /load synthetic speech/i }));
-  expect(screen.getByRole("button", { name: /^speak$/i })).toBeDisabled();
-  fireEvent.click(screen.getByRole("button", { name: /^confirm$/i }));
-  expect(screen.getByRole("button", { name: /^speak$/i })).toBeEnabled();
-});
+render(<CommunicationComposer />);
+fireEvent.click(screen.getByRole("button", { name: /load synthetic speech/i }));
+expect(screen.getByRole("button", { name: /^speak$/i })).toBeDisabled();
+fireEvent.click(screen.getByRole("button", { name: /^confirm$/i }));
+expect(screen.getByRole("button", { name: /^speak$/i })).toBeEnabled();
 ```
 
-Add tests that manual typing is always available, low confidence is announced in a live region, editing invalidates confirmation, and Clear returns to an empty unconfirmed state.
+Also test manual typing is always available, low confidence is surfaced in `role=status`, editing invalidates confirmation, Clear preserves usability, and speech-output failure does not delete the draft.
 
-- [ ] **Step 2: Run and verify FAIL**
+- [ ] **Step 2: Run and confirm FAIL**
 
 ```bash
 pnpm --filter @aditunis/web test
 ```
 
-- [ ] **Step 3: Implement the composer with semantic HTML**
-
-Use:
+- [ ] **Step 3: Implement semantic composer**
 
 ```tsx
 <section aria-labelledby="composer-title">
   <h1 id="composer-title">Aditunis communication demo</h1>
   <div role="status" aria-live="polite" aria-atomic="true">{statusText}</div>
   <label htmlFor="message">Message to speak</label>
-  <textarea id="message" value={draft.text} onChange={...} />
-  <button type="button">Confirm</button>
-  <button type="button" disabled={!draft.confirmed}>Speak</button>
+  <textarea id="message" value={draft.text} onChange={onEdit} />
+  <button type="button" onClick={onConfirm}>Confirm</button>
+  <button type="button" disabled={!draft.confirmed} onClick={onSpeak}>Speak</button>
+  <button type="button" onClick={onClear}>Clear</button>
 </section>
 ```
 
-Do not use auto-focus after recognition. Keep DOM order equal to visual focus order.
+Do not auto-focus after recognition; DOM order equals focus order.
 
-- [ ] **Step 4: Implement browser speech output behind an adapter**
+- [ ] **Step 4: Implement browser `SpeechOutputAdapter`**
 
 ```ts
-export class BrowserSpeechOutputAdapter {
+export class BrowserSpeechOutputAdapter implements SpeechOutputAdapter {
   async speak(text: string) {
     if (!("speechSynthesis" in window)) throw new Error("Speech output is unavailable");
     window.speechSynthesis.speak(new SpeechSynthesisUtterance(text));
   }
-
-  async stop() {
-    window.speechSynthesis.cancel();
-  }
+  async stop() { window.speechSynthesis.cancel(); }
 }
 ```
 
-The UI must catch failure and expose it through the live status region without deleting the draft.
+- [ ] **Step 5: Add accessibility CSS**
 
-- [ ] **Step 5: Add CSS acceptance rules**
+Controls must have at least `44px` target dimensions; use a visible `:focus-visible` outline of at least `2px`; no colour-only status; responsive single-column fallback at narrow widths; `prefers-reduced-motion: reduce` removes nonessential transitions.
 
-Ensure interactive controls have a minimum `44px` block/inline hit area, `:focus-visible` outline at least `2px`, layout remains functional at 200% zoom, and `prefers-reduced-motion: reduce` removes nonessential transition/animation.
-
-- [ ] **Step 6: Run tests/typecheck/build and commit**
+- [ ] **Step 6: Verify and commit**
 
 ```bash
 pnpm --filter @aditunis/web test
@@ -659,60 +502,33 @@ git commit -m "feat(aditunis): add accessible communication composer"
 
 ---
 
-### Task 6: Twilio signature boundary and local bidirectional media harness
+### Task 6: Twilio validation boundary and localhost bidirectional media harness
 
-**Files:**
-- Create: `aditunis/packages/twilio-media/package.json`
-- Create: `aditunis/packages/twilio-media/src/signature.ts`
-- Create: `aditunis/packages/twilio-media/src/messages.ts`
-- Create: `aditunis/packages/twilio-media/src/local-harness.ts`
-- Test: `aditunis/packages/twilio-media/tests/signature.test.ts`
-- Test: `aditunis/packages/twilio-media/tests/messages.test.ts`
-- Test: `aditunis/packages/twilio-media/tests/local-harness.test.ts`
+**Files:** `aditunis/packages/twilio-media/{package.json,tsconfig.json,vitest.config.ts,src/index.ts,src/signature.ts,src/messages.ts,src/local-harness.ts,tests/*.test.ts}`
 
-**Interfaces:**
-- Consumes: `decodeMuLaw`, `encodeMuLaw`, media session state.
-- Produces: `validateTwilioWebhook`, `parseTwilioMediaMessage`, `createLocalMediaHarness`.
+**Manifest dependencies:** `@aditunis/audio-codecs: workspace:*`, `@aditunis/media-bridge: workspace:*`, `twilio`, `ws`; dev dependency `@types/ws`.
 
-- [ ] **Step 1: Write failing Twilio validation tests using the official SDK**
+- [ ] **Step 1: Write failing signature tests**
 
 ```ts
-import twilio from "twilio";
-import { expect, it } from "vitest";
-import { validateTwilioWebhook } from "../src/signature";
-
-it("rejects an invalid Twilio signature", () => {
-  expect(validateTwilioWebhook({
-    authToken: "test-token",
-    signature: "invalid",
-    url: "https://example.test/twilio/voice",
-    params: { CallSid: "CA123" },
-  })).toBe(false);
-});
+expect(validateTwilioWebhook({ authToken: "test-token", signature: "invalid", url: "https://example.test/twilio/voice", params: { CallSid: "CA123" } })).toBe(false);
 ```
 
-Add a positive case using `twilio.getExpectedTwilioSignature` in the test only. Product code must use `twilio.validateRequest`; do not implement custom signature verification.
+Add a positive test using `twilio.getExpectedTwilioSignature` in test code. Product code must call `twilio.validateRequest`; do not implement the verifier manually.
 
-- [ ] **Step 2: Implement the validation boundary**
+- [ ] **Step 2: Implement validation boundary**
 
 ```ts
-import twilio from "twilio";
-
-export function validateTwilioWebhook(input: {
-  authToken: string;
-  signature: string;
-  url: string;
-  params: Record<string, string>;
-}) {
+export function validateTwilioWebhook(input: { authToken: string; signature: string; url: string; params: Record<string, string> }) {
   return twilio.validateRequest(input.authToken, input.signature, input.url, input.params);
 }
 ```
 
-- [ ] **Step 3: Write failing Media Streams parser tests**
+- [ ] **Step 3: Write parser tests for `connected`, `start`, `media`, `mark`, `stop` and invalid messages**
 
-Cover `connected`, `start`, `media`, `mark`, `stop`; reject unknown event shapes rather than treating them as audio. For a `media` event, decode the base64 payload to bytes but do not persist it.
+The `media` case base64-decodes to bytes in memory only.
 
-- [ ] **Step 4: Implement the parser with explicit discriminated unions**
+- [ ] **Step 4: Implement discriminated-union parser**
 
 ```ts
 export type TwilioMediaEvent =
@@ -723,88 +539,81 @@ export type TwilioMediaEvent =
   | { type: "stop"; streamSid: string };
 ```
 
-- [ ] **Step 5: Write the local WebSocket round-trip test**
+Invalid shapes throw `TwilioMediaProtocolError` and are never treated as audio.
 
-Start a `ws` server on an ephemeral port, send a synthetic Twilio `start`, then one base64 mu-law `media` message, assert it decodes to PCM, encode a synthetic outbound PCM chunk, and assert the client receives a Twilio-compatible base64 media payload. No network call may leave localhost.
+- [ ] **Step 5: Write and implement localhost WebSocket round-trip test**
 
-- [ ] **Step 6: Run tests and commit**
+Start `ws` on port `0`, send synthetic `start` and one base64 mu-law `media` frame, assert decode to PCM, encode a synthetic outbound PCM chunk, and assert receipt of a Twilio-compatible base64 `media` frame. Bind only to loopback and make no external call.
+
+- [ ] **Step 6: Verify and commit**
 
 ```bash
 pnpm --filter @aditunis/twilio-media test
 pnpm --filter @aditunis/twilio-media typecheck
 git add aditunis/packages/twilio-media
-git commit -m "feat(aditunis): add twilio media protocol test harness"
+git commit -m "feat(aditunis): add twilio media protocol harness"
 ```
 
 ---
 
 ### Task 7: Temporal model-lifecycle workflow skeleton
 
-**Files:**
-- Create: `aditunis/services/temporal-worker/package.json`
-- Create: `aditunis/services/temporal-worker/src/types.ts`
-- Create: `aditunis/services/temporal-worker/src/activities.ts`
-- Create: `aditunis/services/temporal-worker/src/workflows.ts`
-- Test: `aditunis/services/temporal-worker/tests/enrollment-workflow.test.ts`
-- Test: `aditunis/services/temporal-worker/tests/consent-withdrawal.test.ts`
+**Files:** `aditunis/services/temporal-worker/{package.json,tsconfig.json,vitest.config.ts,src/types.ts,src/activities.ts,src/workflows.ts,tests/enrollment-workflow.test.ts,tests/consent-withdrawal.test.ts}`
 
-**Interfaces:**
-- Produces: `AditunisEnrollmentWorkflow`, `WithdrawTrainingConsentWorkflow`, typed activity contracts.
-- Consumes: synthetic profile/sample identifiers only; no audio content is stored in workflow history.
+**Manifest:**
 
-- [ ] **Step 1: Write a failing enrollment-workflow test with Temporal's time-skipping test environment**
-
-The expected ordered outcomes are:
-
-```text
-consent verified
-samples validated
-personal ASR trained
-held-out evaluation completed
-participant acceptance requested
-model promoted only when accepted
-```
-
-Assert that a rejected participant acceptance result returns `status: "not-promoted"`.
-
-- [ ] **Step 2: Implement deterministic workflow orchestration**
-
-Activities are invoked through `proxyActivities` with retry policy. Workflow code must not access filesystem, network, wall clock, random values, or model libraries directly.
-
-```ts
-const {
-  verifyTrainingConsent,
-  validateSamples,
-  trainPersonalModel,
-  evaluateModel,
-  requestParticipantAcceptance,
-  promoteModel,
-} = proxyActivities<Activities>({
-  startToCloseTimeout: "10 minutes",
-  retry: { maximumAttempts: 3 },
-});
-```
-
-- [ ] **Step 3: Write the withdrawal test before implementation**
-
-`WithdrawTrainingConsentWorkflow` must call Activities to revoke training consent, delete intentionally collected training samples, delete derived personal models, and record completion metadata. It must not delete unrelated ordinary service data.
-
-- [ ] **Step 4: Implement withdrawal workflow and Activity interfaces**
-
-Return a structured result:
-
-```ts
+```json
 {
-  status: "withdrawn",
-  trainingSamplesDeleted: true,
-  derivedModelsDeleted: true,
-  completedAt: string
+  "name": "@aditunis/temporal-worker",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": { "test": "vitest run", "typecheck": "tsc -p tsconfig.json --noEmit", "build": "tsc -p tsconfig.json --noEmit" },
+  "dependencies": {
+    "@temporalio/activity": "^1.13.2",
+    "@temporalio/client": "^1.13.2",
+    "@temporalio/worker": "^1.13.2",
+    "@temporalio/workflow": "^1.13.2"
+  },
+  "devDependencies": { "@temporalio/testing": "^1.13.2", "typescript": "^5.9.2", "vitest": "^3.2.4" }
 }
 ```
 
-Generate `completedAt` inside an Activity, not with a non-deterministic workflow-side wall-clock call.
+- [ ] **Step 1: Write failing enrollment workflow test**
 
-- [ ] **Step 5: Run workflow tests and commit**
+Expected Activity order: verify training consent -> validate participant-approved samples -> train personal model -> evaluate held-out samples -> request participant acceptance -> promote only if accepted. A rejected acceptance returns `{ status: "not-promoted" }`.
+
+- [ ] **Step 2: Implement deterministic workflow orchestration**
+
+```ts
+const activities = proxyActivities<Activities>({
+  startToCloseTimeout: "10 minutes",
+  retry: { maximumAttempts: 3 }
+});
+```
+
+Workflow code must not access filesystem, network, wall clock, random values, audio/model libraries, or environment variables directly.
+
+- [ ] **Step 3: Write failing consent-withdrawal/deletion test**
+
+Withdrawal must revoke training consent, delete intentionally collected training samples, delete derived personal models, and record completion metadata. It must not delete unrelated service data.
+
+- [ ] **Step 4: Implement withdrawal workflow**
+
+Activity result shape:
+
+```ts
+export interface WithdrawalResult {
+  status: "withdrawn";
+  trainingSamplesDeleted: boolean;
+  derivedModelsDeleted: boolean;
+  completedAt: string;
+}
+```
+
+`completedAt` is produced by an Activity, not a workflow-side wall-clock call.
+
+- [ ] **Step 5: Verify and commit**
 
 ```bash
 pnpm --filter @aditunis/temporal-worker test
@@ -815,7 +624,7 @@ git commit -m "feat(aditunis): add durable model lifecycle workflows"
 
 ---
 
-### Task 8: End-to-end accessibility, privacy documentation, and CI verification
+### Task 8: End-to-end accessibility, privacy documentation, CI, and final verification
 
 **Files:**
 - Create: `aditunis/playwright.config.ts`
@@ -826,98 +635,73 @@ git commit -m "feat(aditunis): add durable model lifecycle workflows"
 - Create: `aditunis/docs/model-cards/foundation-adapters.md`
 - Create: `.github/workflows/aditunis-foundation.yml`
 
-**Interfaces:**
-- Verifies the complete foundation vertical slice.
-- No new runtime API is introduced.
+- [ ] **Step 1: Write E2E flow before final integration changes**
 
-- [ ] **Step 1: Add failing Playwright flow**
+The test opens the app, loads a synthetic hypothesis, observes uncertainty, edits text, verifies Speak disabled, confirms, verifies Speak enabled, stubs browser speech output, invokes Speak, clears the draft, and verifies manual typing remains available.
 
-The browser test must:
-
-1. open the demo;
-2. load a synthetic personal-speech hypothesis;
-3. verify the uncertainty status is visible;
-4. edit the proposed text;
-5. verify Speak remains disabled;
-6. confirm;
-7. verify Speak becomes enabled;
-8. trigger Speak with a browser speech stub;
-9. Clear;
-10. verify manual typing remains available.
-
-- [ ] **Step 2: Add automated accessibility smoke test**
-
-Use `@axe-core/playwright`:
+- [ ] **Step 2: Add axe + keyboard accessibility checks**
 
 ```ts
 const results = await new AxeBuilder({ page }).analyze();
 expect(results.violations).toEqual([]);
 ```
 
-Also run keyboard-only checks for all primary actions and assert the live region announces low confidence and errors.
+Tab through every primary control, assert visible focus, and assert the live region announces low-confidence and error states. Automated checks do not replace the manual checklist recorded in `data-flow.md`.
 
-- [ ] **Step 3: Document the actual foundation data flow**
-
-`data-flow.md` must explicitly show:
+- [ ] **Step 3: Document exact implemented data flow**
 
 ```text
-browser/synthetic audio
+browser/synthetic input
  -> adapter contract
- -> hypothesis/provenance
+ -> hypothesis + provenance
  -> editable draft
  -> participant confirmation
- -> local TTS
+ -> browser TTS
 
 synthetic PCM
  -> G.711 mu-law
- -> local Twilio-compatible WebSocket harness
+ -> media-session abstraction
+ -> localhost Twilio-compatible WebSocket harness
 ```
 
-State that no live Twilio call and no real personalised model are implemented in this slice.
+State explicitly that no live call, real Euphonia model, or real Personal VAD model is implemented in this slice.
 
-- [ ] **Step 4: Document privacy controls**
+- [ ] **Step 4: Document privacy controls and model-card status**
 
-`foundation-privacy.md` must record:
+Record no recording by default, no participant data in git/tests, separate training consent, separately deletable speaker-profile artifacts, Personal VAD not used for authentication, raw communication content excluded from ordinary logs, typed fallback, emergency calling out of scope, and mock adapters labelled test doubles.
 
-- no recording by default;
-- no participant training data in git/tests;
-- training consent separated from service consent;
-- speaker embeddings treated as sensitive and separately deletable;
-- Personal VAD not used for login/authentication;
-- raw communication content excluded from ordinary logs;
-- failure fallback to typed/AAC-compatible manual communication;
-- emergency calling explicitly out of scope.
-
-- [ ] **Step 5: Add model/adaptor card**
-
-Document the mock Personal Speech adapter and mock Personal VAD adapter as **test doubles**, not trained models. Record upstream research references separately and prohibit claims that the foundation has validated atypical-speech recognition or Auslan translation.
-
-- [ ] **Step 6: Add CI**
-
-GitHub Actions job must run from `aditunis/`:
+- [ ] **Step 5: Add CI**
 
 ```yaml
-- uses: pnpm/action-setup@v4
-  with:
-    version: 10.15.1
-- uses: actions/setup-node@v4
-  with:
-    node-version: 22
-    cache: pnpm
-    cache-dependency-path: aditunis/pnpm-lock.yaml
-- run: pnpm install --frozen-lockfile
-  working-directory: aditunis
-- run: pnpm typecheck
-  working-directory: aditunis
-- run: pnpm test
-  working-directory: aditunis
-- run: pnpm build
-  working-directory: aditunis
+name: Aditunis Foundation
+on:
+  pull_request:
+    paths: ["aditunis/**", ".github/workflows/aditunis-foundation.yml"]
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: aditunis
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.15.1
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+          cache-dependency-path: aditunis/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: pnpm build
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm e2e
 ```
 
-Run Playwright in CI only after installing its Chromium dependency.
-
-- [ ] **Step 7: Run complete local verification**
+- [ ] **Step 6: Run complete local verification**
 
 ```bash
 cd aditunis
@@ -927,25 +711,21 @@ pnpm test
 pnpm build
 pnpm exec playwright install chromium
 pnpm e2e
+cd ..
+git diff master...HEAD --check
+git status --short
 ```
 
-Expected: all commands PASS.
-
-- [ ] **Step 8: Inspect git diff for sensitive or generated material**
-
-Run:
+- [ ] **Step 7: Scan for secrets/media**
 
 ```bash
-git status --short
-git diff --check
-git diff --cached --check
 grep -R -n -E 'TWILIO_AUTH_TOKEN|TWILIO_ACCOUNT_SID|BEGIN (RSA |EC |OPENSSH )?PRIVATE KEY' aditunis .github/workflows/aditunis-foundation.yml || true
 find aditunis -type f \( -name '*.wav' -o -name '*.mp3' -o -name '*.mp4' -o -name '*.m4a' \) -print
 ```
 
-Expected: no secrets and no participant/media recordings.
+Expected: no secrets and no recordings.
 
-- [ ] **Step 9: Commit**
+- [ ] **Step 8: Commit**
 
 ```bash
 git add aditunis .github/workflows/aditunis-foundation.yml
@@ -956,7 +736,7 @@ git commit -m "test(aditunis): verify foundation accessibility and privacy"
 
 ## Final Verification Gate
 
-Before opening a PR, run all of the following and capture the output in the final engineering report:
+Before opening a PR:
 
 ```bash
 cd aditunis
@@ -969,28 +749,28 @@ git diff master...HEAD --check
 git status --short
 ```
 
-Then verify the branch against the design exit criteria:
+Confirm every approved exit criterion:
 
-- Accessible demo ingests a synthetic communication event.
-- Event becomes a typed `CommunicationHypothesis` with model provenance.
-- Uncertainty is visible and announced.
-- User can edit and explicitly confirm.
-- Speak cannot run before confirmation.
-- Browser TTS is invoked only for the confirmed draft.
-- Synthetic audio passes through the media abstraction and G.711 mu-law path.
-- Local WebSocket harness proves Twilio-compatible media framing without placing a call.
-- Personal VAD failure degrades to ordinary processing.
-- Personal Speech output cannot omit model provenance.
-- Temporal enrollment and withdrawal workflows pass deterministic tests.
-- Privacy/data-flow/model-card documentation exists.
-- No participant data, recordings, embeddings, or credentials are committed.
-- No claim is made that the foundation is production telephony, an emergency service, validated atypical-speech ASR, or an Auslan translator.
+- accessible demo ingests a synthetic communication event;
+- event becomes typed `CommunicationHypothesis` with provenance;
+- uncertainty is visible and announced;
+- user can edit and explicitly confirm;
+- Speak cannot run before confirmation;
+- browser TTS receives only the confirmed draft;
+- synthetic PCM passes the media abstraction and G.711 mu-law path;
+- localhost WebSocket test proves Twilio-compatible framing without a call;
+- Personal VAD failure degrades to ordinary processing;
+- Personal Speech hypotheses cannot omit model provenance;
+- Temporal enrollment and withdrawal workflows pass deterministic tests;
+- privacy/data-flow/model-card documentation exists;
+- no participant data, recordings, embeddings, or credentials are committed;
+- no claim is made that the foundation is production telephony, an emergency service, validated atypical-speech ASR, or an Auslan translator.
 
 ## PR Scope
 
-Open a **draft** PR from `feature/aditunis-foundation` to `master` only after the final verification gate passes. The PR must remain draft until independent code review is complete. Do not merge.
+Open a **draft** PR from `feature/aditunis-foundation` to `master` only after final verification passes. Do not merge.
 
-The PR description must distinguish:
+PR description states:
 
 - **Implemented and verified locally:** communication contracts, draft/confirmation policy, synthetic adapters, accessible demo, codec/media harness, Twilio validation boundary, Temporal workflow skeleton, tests/docs.
 - **In development / next slice:** real Euphonia personalised Whisper service and Personal VAD model integration.
