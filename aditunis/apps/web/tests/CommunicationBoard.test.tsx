@@ -34,6 +34,6 @@ describe("Lovable communication board integration", () => {
     const { adapter } = speechMock();
     render(<CommunicationBoard onSendToComposer={() => undefined} speechOutput={adapter} />);
     fireEvent.click(screen.getByRole("tab", { name: "Emergency" }));
-    expect(screen.getByText(/do not place an emergency call/i)).toBeInTheDocument();
+    expect(screen.getByText(/do not place an emergency call/i)).toBeTruthy();
   });
 });
