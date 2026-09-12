@@ -1,11 +1,5 @@
 name: Aditunis Foundation
 on:
-  push:
-    branches:
-      - "feature/aditunis-foundation-ci"
-    paths:
-      - "aditunis/**"
-      - ".github/workflows/aditunis-foundation.yml"
   pull_request:
     paths:
       - "aditunis/**"
