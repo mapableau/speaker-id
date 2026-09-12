@@ -1,0 +1,12 @@
+:root { font-family: system-ui, sans-serif; line-height: 1.5; color-scheme: light dark; }
+* { box-sizing: border-box; }
+body { margin: 0; }
+main { max-width: 52rem; margin: 0 auto; padding: 1rem; }
+.composer { display: grid; gap: 1rem; }
+textarea { width: 100%; min-height: 8rem; font: inherit; padding: .75rem; }
+.actions { display: flex; flex-wrap: wrap; gap: .75rem; }
+button { min-width: 44px; min-height: 44px; padding: .65rem 1rem; font: inherit; }
+button:focus-visible, textarea:focus-visible { outline: 3px solid currentColor; outline-offset: 3px; }
+.status { border: 1px solid currentColor; padding: .75rem; border-radius: .5rem; }
+@media (max-width: 32rem) { .actions { flex-direction: column; } .actions button { width: 100%; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; } }
